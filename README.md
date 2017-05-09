@@ -7,18 +7,19 @@ Create `config.py` file with Slack and Unsplash app constants.
 ```
 # Unsplash constants
 UNSPLASH = {
-  'application_id': 'application-id',
-  'application_secret': 'application-secret',
+  'application_id': '<insert-application-id>',
+  'application_secret': '<insert-application-secret>',
   'callback_url': 'urn:ietf:wg:oauth:2.0:oob'
 }
 
 # Slack bot constants
-BOT = {
-  'bot_name': 'bot-name',
-  'bot_token': 'bot-token',
-  'bot_id': 'bot-id'
+SLACK = {
+  'client_name': 'inspire-me',
+  'client_id': '<insert-client-id>',
+  'client_secret': '<insert-client-secret>',
+  'scope': 'bot'
 }
 AT_BOT = "<@" + BOT['bot_id'] + ">:"
 ```
 Install in virtualenv modules from requirements.txt.
-`python start.py`
+`SLACK_USER_TOKEN="" SLACK_BOT_TOKEN="" python app.py`

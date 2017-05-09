@@ -1,3 +1,4 @@
+import os
 import urllib.request
 import json
 import time
@@ -55,12 +56,13 @@ class Bot(object):
         this parsing function returns None unless a message is
         directed at the Bot, based on its ID.
     """
+    at_bot = "<@" + os.environ["SLACK_BOT_USER_ID"] + ">"
     output_list = slack_rtm_output
     if output_list and len(output_list) > 0:
         for output in output_list:
-            if output and 'text' in output and config.AT_BOT in output['text']:
+            if output and 'text' in output and at_bot in output['text']:
                 # return text after the @ mention, whitespace removed
-                return output['text'].split(config.AT_BOT)[1].strip().lower(), \
+                return output['text'].split(at_bot)[1].strip().lower(), \
                        output['channel']
     return None, None
 

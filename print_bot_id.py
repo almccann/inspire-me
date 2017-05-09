@@ -2,7 +2,7 @@ from slackclient import SlackClient
 
 import config
 
-slack_client = SlackClient(config.BOT['bot_token'])
+slack_client = SlackClient(config.SLACK['bot_token'])
 
 if __name__ == "__main__":
     api_call = slack_client.api_call("users.list")
