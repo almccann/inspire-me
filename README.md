@@ -22,4 +22,4 @@ SLACK = {
 AT_BOT = "<@" + BOT['bot_id'] + ">:"
 ```
 Install in virtualenv modules from requirements.txt.
-`SLACK_USER_TOKEN="" SLACK_BOT_TOKEN="" python app.py`
+`SLACK_USER_TOKEN="" SLACK_BOT_TOKEN="" SLACK_BOT_USER_ID="" python3 app.py`
