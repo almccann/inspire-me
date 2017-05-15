@@ -56,8 +56,6 @@ def post_install():
             if team_id == auth_response['team_id']:
                 update = update_user(id, auth_response['access_token'], auth_response['scope'], auth_response['team_name'], auth_response['team_id'], auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token'])
                 if update['status'] == 1:
-                    t = threading.Thread(name=auth_response['team_id'], target=start_bot, args=(auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token']))
-                    t.start()
                     return "Authentication updated. Your bot is already running."
                 else:
                     return "Could not update authentication. Please try again."
