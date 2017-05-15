@@ -1,9 +1,9 @@
 # Overview
-
 Slack bot that responds to interaction with inspring photographs sourced from Unsplash API.
 
 # Usage
-Create `config.py` file with Slack and Unsplash app constants.
+Create `config.py` file with Slack and Unsplash app constants.  
+Create `users.db` file to store the SQLite user table.  
 ```
 # Unsplash constants
 UNSPLASH = {
@@ -17,9 +17,8 @@ SLACK = {
   'client_name': 'inspire-me',
   'client_id': '<insert-client-id>',
   'client_secret': '<insert-client-secret>',
-  'scope': 'bot'
+  'scope': 'bot+chat%3Awrite%3Abot'
 }
-AT_BOT = "<@" + BOT['bot_id'] + ">:"
 ```
-Install in virtualenv modules from requirements.txt.
-`SLACK_USER_TOKEN="" SLACK_BOT_TOKEN="" SLACK_BOT_USER_ID="" python3 app.py`
+Install in virtualenv with modules from requirements.txt.
+`python3 app.py` to run OAuth routes and bot.  

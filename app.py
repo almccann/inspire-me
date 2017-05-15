@@ -1,8 +1,8 @@
-import os
 import config
 import time
 import logging
 import threading
+import sqlite3
 
 from flask import Flask, request
 from slackclient import SlackClient
@@ -42,26 +42,27 @@ def post_install():
     code=auth_code
   )
 
-  # Save the bot token to an environmental variable or to your data store
-  # for later use
-  os.environ["SLACK_USER_TOKEN"] = auth_response['access_token']
-  os.environ["SLACK_BOT_USER_ID"] = auth_response['bot']['bot_user_id']
-  os.environ["SLACK_BOT_TOKEN"] = auth_response['bot']['bot_access_token']
+  # TODO - check if user already authenticated, in which case update their existing row rather than inserting a new one.  
+
+  # Store the authentication response for use
+  result = insert_user(auth_response['access_token'], auth_response['scope'], auth_response['team_name'], auth_response['team_id'], auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token'])
 
   # Start the bot in a new thread
-  t = threading.Thread(name='bot', target=start_bot)
-  t.start()
+  if result['status'] == 1:
+      t = threading.Thread(name=auth_response['team_name'], target=start_bot, args=(auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token']))
+      t.start()
+      return "Authentication complete. Your bot is now running"
+  else:
+      return "Could not authenticate. Please try again."
 
-  # Don't forget to let the user know that auth has succeeded!
-  return "Auth complete!"
-
-def start_bot():
-  slack_client = SlackClient(os.environ["SLACK_BOT_TOKEN"])
+def start_bot(bot_user_id, bot_access_token):
   READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
+  
+  slack_client = SlackClient(bot_access_token)
   if slack_client.rtm_connect():
-    logger.info("Inspire Me connected with user " + os.environ["SLACK_BOT_USER_ID"])
+    logger.info("Inspire Me connected with user " + bot_user_id)
     while True:
-      bot = Bot(slack_client)
+      bot = Bot(slack_client, bot_user_id)
       command, channel = bot.parse_slack_output(slack_client.rtm_read())
       if command and channel:
         bot.handle_command(command, channel)
@@ -69,5 +70,32 @@ def start_bot():
   else:
     logger.error("Connection failed. Invalid Slack token or bot ID?")
     
+def insert_user(access_token, scope, team_name, team_id, bot_user_id, bot_access_token):
+    try:
+        with sqlite3.connect('users.db') as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                INSERT INTO users (access_token, scope, team_name, team_id, bot_user_id, bot_access_token) values (?, ?, ?, ?, ?, ?);
+                """, (access_token, scope, team_name, team_id, bot_user_id, bot_access_token,))
+            result = {'status': 1, 'result': cursor.fetchone }
+    except:
+        result = {'status': 0, 'result': 'error'}
+    return result
+
+def select_all_users():
+    try:
+        with sqlite3.connect('users.db') as connection:
+           cursor = connection.cursor()
+           cursor.execute("SELECT * FROM users ORDER BY id desc")
+           result = {'status': 1, 'result': cursor.fetchall()}
+    except:
+        result = {'status': 0, 'result': 'error' }
+    return result
+
 if __name__ == '__main__':
-  app.run(debug=True)
+    users = select_all_users()
+    if users['status'] == 1:
+        for u in users['result']:
+            t = threading.Thread(name=u[3], target=start_bot, args=(u[5], u[6]))
+            t.start()
+    app.run(debug=True)

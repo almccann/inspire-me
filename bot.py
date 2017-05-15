@@ -1,4 +1,3 @@
-import os
 import urllib.request
 import json
 import time
@@ -11,8 +10,10 @@ logger = logging.getLogger(__name__)
 
 class Bot(object):
 
-  def __init__(self, slack_client):
+  def __init__(self, slack_client, bot_user_id):
     self.slack_client = slack_client
+    self.bot_user_id = bot_user_id
+
     # HTTP Requests
     self.base = 'https://api.unsplash.com/'
     self.headers = {'Authorization': "Client-ID " + config.UNSPLASH['application_id']}
@@ -56,7 +57,7 @@ class Bot(object):
         this parsing function returns None unless a message is
         directed at the Bot, based on its ID.
     """
-    at_bot = "<@" + os.environ["SLACK_BOT_USER_ID"] + ">"
+    at_bot = "<@" + self.bot_user_id + ">"
     output_list = slack_rtm_output
     if output_list and len(output_list) > 0:
         for output in output_list:
