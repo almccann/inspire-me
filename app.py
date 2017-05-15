@@ -20,40 +20,57 @@ app = Flask(__name__)
 
 @app.route("/begin_auth", methods=["GET"])
 def pre_install():
-  return '''
-    <a href="https://slack.com/oauth/authorize?scope={0}&client_id={1}">
-      Add to Slack
-    </a>
-    '''.format(oauth_scope, client_id)
+    return '''
+      <a href="https://slack.com/oauth/authorize?scope={0}&client_id={1}">
+        Add to Slack
+      </a>
+      '''.format(oauth_scope, client_id)
 
 @app.route("/finish_auth", methods=["GET", "POST"])
 def post_install():
-  # Retrieve the auth code from the request params
-  auth_code = request.args['code']
+    # Retrieve the auth code from the request params
+    auth_code = request.args['code']
 
-  # An empty string is a valid token for this request
-  sc = SlackClient("")
+    # An empty string is a valid token for this request
+    sc = SlackClient("")
 
-  # Request the auth tokens from Slack
-  auth_response = sc.api_call(
-    "oauth.access",
-    client_id=client_id,
-    client_secret=client_secret,
-    code=auth_code
-  )
+    # Request the auth tokens from Slack
+    auth_response = sc.api_call(
+      "oauth.access",
+      client_id=client_id,
+      client_secret=client_secret,
+      code=auth_code
+    )
 
-  # TODO - check if user already authenticated, in which case update their existing row rather than inserting a new one.  
+    # Insert or update user authentication information.
+    # If a new user (team_id not currently in users table)
+    # a bot is started in a thread
 
-  # Store the authentication response for use
-  result = insert_user(auth_response['access_token'], auth_response['scope'], auth_response['team_name'], auth_response['team_id'], auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token'])
+    # TODO - clean up thread if updating token
 
-  # Start the bot in a new thread
-  if result['status'] == 1:
-      t = threading.Thread(name=auth_response['team_name'], target=start_bot, args=(auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token']))
-      t.start()
-      return "Authentication complete. Your bot is now running"
-  else:
-      return "Could not authenticate. Please try again."
+    users = select_all_users()
+    if users['status'] == 1:
+        for u in users['result']:
+            id = u[0]
+            team_id = u[4]
+            if team_id == auth_response['team_id']:
+                update = update_user(id, auth_response['access_token'], auth_response['scope'], auth_response['team_name'], auth_response['team_id'], auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token'])
+                if update['status'] == 1:
+                    t = threading.Thread(name=auth_response['team_id'], target=start_bot, args=(auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token']))
+                    t.start()
+                    return "Authentication updated. Your bot is already running."
+                else:
+                    return "Could not update authentication. Please try again."
+    else:
+        return "Could not authenticate. Please try again."
+
+    insert = insert_user(auth_response['access_token'], auth_response['scope'], auth_response['team_name'], auth_response['team_id'], auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token'])
+    if insert['status'] == 1:
+        t = threading.Thread(name=auth_response['team_id'], target=start_bot, args=(auth_response['bot']['bot_user_id'], auth_response['bot']['bot_access_token']))
+        t.start()
+        return "Authentication complete. Your bot is now running"
+    else:
+        return "Could not authenticate. Please try again."
 
 def start_bot(bot_user_id, bot_access_token):
   READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
@@ -75,8 +92,20 @@ def insert_user(access_token, scope, team_name, team_id, bot_user_id, bot_access
         with sqlite3.connect('users.db') as connection:
             cursor = connection.cursor()
             cursor.execute("""
-                INSERT INTO users (access_token, scope, team_name, team_id, bot_user_id, bot_access_token) values (?, ?, ?, ?, ?, ?);
+                INSERT INTO users (access_token, scope, team_name, team_id, bot_user_id, bot_access_token) VALUES (?, ?, ?, ?, ?, ?);
                 """, (access_token, scope, team_name, team_id, bot_user_id, bot_access_token,))
+            result = {'status': 1, 'result': cursor.fetchone }
+    except:
+        result = {'status': 0, 'result': 'error'}
+    return result
+
+def update_user(id, access_token, scope, team_name, team_id, bot_user_id, bot_access_token):
+    try:
+        with sqlite3.connect('users.db') as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                UPDATE users SET access_token = ?, scope = ?, team_name = ?, team_id = ?, bot_user_id = ?, bot_access_token = ? WHERE id = ?;
+                """, (access_token, scope, team_name, team_id, bot_user_id, bot_access_token, id,))
             result = {'status': 1, 'result': cursor.fetchone }
     except:
         result = {'status': 0, 'result': 'error'}
@@ -86,7 +115,9 @@ def select_all_users():
     try:
         with sqlite3.connect('users.db') as connection:
            cursor = connection.cursor()
-           cursor.execute("SELECT * FROM users ORDER BY id desc")
+           cursor.execute("""
+               SELECT * FROM users ORDER BY id desc;
+               """)
            result = {'status': 1, 'result': cursor.fetchall()}
     except:
         result = {'status': 0, 'result': 'error' }
@@ -96,6 +127,6 @@ if __name__ == '__main__':
     users = select_all_users()
     if users['status'] == 1:
         for u in users['result']:
-            t = threading.Thread(name=u[3], target=start_bot, args=(u[5], u[6]))
+            t = threading.Thread(name=u[4], target=start_bot, args=(u[5], u[6]))
             t.start()
     app.run(debug=True)
