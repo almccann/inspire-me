@@ -18,6 +18,15 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+@app.route("/privacy_policy", methods=["GET"])
+def privacy():
+    return '''
+      <h1>Privacy Policy</h1>
+      <p>The only information the Inspire Me application stores is the unique token generated 
+      by Slack when you authorise access.</p>
+      <p>This token is rendered void if you revoke access to Inspire Me from your Slack account.</p>
+      '''
+
 @app.route("/begin_auth", methods=["GET"])
 def pre_install():
     return '''
