@@ -2,11 +2,11 @@ import urllib.request
 import json
 import time
 import random
-import logging
+#import logging
 
 import config
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 class Bot(object):
 
@@ -79,18 +79,18 @@ class Bot(object):
     """
     if command != None:
       if command.lower() == 'front page'.lower():
-        logger.info('front page command')
+        #logger.info('front page command')
         return dict(command='front page', content=self.unsplash_api_get('/photos/curated'))
       elif command == '':
-        logger.info('empty command')
+        #logger.info('empty command')
         return dict(command='none', content=self.unsplash_api_get('/photos?order_by=popular'))
       else:
         categories = self.unsplash_api_get('categories')
         for cat in categories:
           if cat['title'].lower() == command.lower():
-            logger.info('category ' + cat['title'].lower() + ' found')
+            #logger.info('category ' + cat['title'].lower() + ' found')
             return dict(command=cat['title'].lower(), content=self.unsplash_api_get('categories/' + str(cat['id']) + '/photos'))
-        logger.info('category not found')
+        #logger.info('category not found')
         return dict(command='not found', content=self.unsplash_api_get('/photos?order_by=popular'))
 
   def unsplash_api_get(self, endpoint):
