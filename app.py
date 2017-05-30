@@ -79,7 +79,7 @@ def start_bot(bot_user_id, bot_access_token):
     while True:
       bot = Bot(slack_client, bot_user_id)
       command, channel = bot.parse_slack_output(slack_client.rtm_read())
-      if command and channel:
+      if command != None and channel != None:
         bot.handle_command(command, channel)
       time.sleep(READ_WEBSOCKET_DELAY)
   else:
